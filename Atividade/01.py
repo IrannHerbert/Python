@@ -8,5 +8,11 @@ class Atividade:
         self.concluida = True
 
     def __str__(self):
-        status = "Concluida !"
+        status = "Concluida !" if self.concluida else "Não concluida !"
         return f"{status}{self.descricao}"
+    
+    class BancoDeDadosTarefas:
+        _instancia = nome
+
+        def __new__(cls):
+
