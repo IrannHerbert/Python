@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block title %}Livros · Biblioteca{% endblock %}
+{% block content %}
+  <h1>Livros disponíveis</h1>
+  <p style="margin-top:-4px; font-size:.85rem;" class="muted">Busca avançada, ordenação, exportação e histórico de pesquisas. <a href="{% url 'catalog:advanced_search' %}">Ir para busca avançada »</a></p>
+
+  {# Formulário de busca e filtros #}
+  <form method="get" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px;">
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 1rem;">
+      {# Campo de busca #}
+      <div>
+        <label for="q" style="display: block; margin-bottom: 0.3rem; font-weight: 500;">
+          Buscar por título, autor ou ISBN
+        </label>
+        <input 
+          id="q" 
+          type="text" 
+          name="q" 
+          value="{{ q }}" 
+          placeholder="Ex.: Python, Machado de Assis, 9788544001196" 
+          list="suggestions" autocomplete="off"
+          style="width: 100%; padding: 0.5rem; border: 1px solid var(--btn-border); border-radius: 4px; background: var(--bg); color: var(--text);"
+        >
+        <datalist id="suggestions"></datalist>
+      </div>
+
+      {# Opção de paginação #}
+      <div>
+        <label for="mostrar" style="display: block; margin-bottom: 0.3rem; font-weight: 500;">
+          Itens por página
+        </label>
+        <select 
+          id="mostrar" 
+          name="mostrar" 
+          style="width: 100%; padding: 0.5rem; border: 1px solid var(--btn-border); border-radius: 4px; background: var(--bg); color: var(--text);"
+        >
+          <option value="20" {% if mostrar == "20" %}selected{% endif %}>20 itens</option>
+          <option value="todos" {% if mostrar == "todos" %}selected{% endif %}>Mostrar todos</option>
+        </select>
+      </div>
+      {# Categoria #}
+      <div>
+        <label for="categoria" style="display:block; margin-bottom:.3rem; font-weight:500;">Categoria</label>
+        <select id="categoria" name="categoria" style="width:100%; padding:.5rem; border:1px solid var(--btn-border); border-radius:4px; background:var(--bg); color:var(--text);">
+          <option value="">-- Todas --</option>
+          {% for c in categorias %}
+            <option value="{{ c.id }}" {% if c.id|stringformat:'s' == categoria_selecionada %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {# Idioma #}
+      <div>
+        <label for="idioma" style="display:block; margin-bottom:.3rem; font-weight:500;">Idioma</label>
+        <input id="idioma" type="text" name="idioma" value="{{ idioma }}" placeholder="Ex.: Português" style="width:100%; padding:.5rem; border:1px solid var(--btn-border); border-radius:4px; background:var(--bg); color:var(--text);">
+      </div>
+      {# Faixa de ano #}
+      <div>
+        <label style="display:block; margin-bottom:.3rem; font-weight:500;">Ano de edição (faixa)</label>
+        <div style="display:flex; gap:.5rem;">
+          <input type="number" name="ano_min" value="{{ ano_min }}" placeholder="mín" style="flex:1; padding:.5rem; border:1px solid var(--btn-border); border-radius:4px; background:var(--bg); color:var(--text);">
+          <input type="number" name="ano_max" value="{{ ano_max }}" placeholder="máx" style="flex:1; padding:.5rem; border:1px solid var(--btn-border); border-radius:4px; background:var(--bg); color:var(--text);">
+        </div>
+      </div>
+      {# Ordenação #}
+      <div>
+        <label for="ordenar" style="display:block; margin-bottom:.3rem; font-weight:500;">Ordenar por</label>
+        <select id="ordenar" name="ordenar" style="width:100%; padding:.5rem; border:1px solid var(--btn-border); border-radius:4px; background:var(--bg); color:var(--text);">
+          <option value="title" {% if ordenar == 'title' %}selected{% endif %}>Título (A-Z)</option>
+          <option value="author" {% if ordenar == 'author' %}selected{% endif %}>Autor (A-Z)</option>
+          <option value="disponibilidade" {% if ordenar == 'disponibilidade' %}selected{% endif %}>Disponibilidade crescente</option>
+        </select>
+      </div>
+    </div>
+
+    {# Checkbox de disponibilidade e botões #}
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.4rem;">
+        <input 
+          id="disp" 
+          type="checkbox" 
+          name="disponivel" 
+          value="1" 
+          {% if show_only_available %}checked{% endif %}
+          style="cursor: pointer;"
+        >
+        <label for="disp" style="cursor: pointer; user-select: none;">
+          Somente com cópias disponíveis
+        </label>
+      </div>
+
+      <div style="margin-left: auto; display: flex; gap: 0.5rem; flex-wrap:wrap;">
+        <button class="btn" type="submit" style="background: var(--accent); color: var(--primary); font-weight: 600;">
+          🔍 Filtrar
+        </button>
+        <a class="btn" href="{% url 'catalog:book_list' %}">
+          ✖ Limpar
+        </a>
+  <button class="btn" name="export" value="csv" type="submit">⬇ CSV</button>
+  <button class="btn" name="export" value="xlsx" type="submit">⬇ Excel</button>
+        <a class="btn" href="{% url 'catalog:search_history' %}">🕒 Histórico</a>
+      </div>
+    </div>
+  </form>
+
+  {# Informações sobre os resultados #}
+  {% if q or show_only_available %}
+    <p class="muted" style="margin-bottom: 1rem;">
+      {% if total_count == 0 %}
+        Nenhum livro encontrado com os filtros aplicados.
+      {% elif total_count == 1 %}
+        1 livro encontrado.
+      {% else %}
+        {{ total_count }} livros encontrados.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {# Tabela de livros #}
+  {% if books %}
+  <table id="books-table">
+      <thead>
+        <tr>
+          <th>Capa</th>
+          <th>Título</th>
+          <th>Autor</th>
+          <th>ISBN</th>
+          <th>Disponíveis</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for book in books %}
+        <tr>
+          <td>
+            {# Exibe a capa do livro se houver imagem cadastrada #}
+            {% if book.image %}
+              <img src="{{ book.image.url }}" alt="Capa de {{ book.title }}" style="width: 60px; height: 90px; object-fit: cover; border-radius: 4px;">
+            {% else %}
+              <div style="width: 60px; height: 90px; background: var(--accent); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--bg); font-size: 12px; text-align: center;">Sem capa</div>
+            {% endif %}
+          </td>
+          <td class="col-title">{{ book.title }}</td>
+          <td class="col-author">{{ book.author }}</td>
+          <td class="muted col-isbn">{{ book.isbn }}</td>
+          <td>{{ book.copies_available }}</td>
+          <td>
+            {% if book.copies_available > 0 %}
+              <form method="post" action="{% url 'catalog:borrow_book' book.id %}">
+                {% csrf_token %}
+                <button class="btn" type="submit">Emprestar</button>
+              </form>
+            {% else %}
+              <button class="btn" disabled>Indisponível</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    {# Controles de paginação (apenas se não for "mostrar todos") #}
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+      <nav style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; justify-content: center; padding: 1rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px;">
+        {# Botão Anterior #}
+        {% if page_obj.has_previous %}
+          <a class="btn" href="?q={{ q }}{% if show_only_available %}&disponivel=1{% endif %}&mostrar={{ mostrar }}&page={{ page_obj.previous_page_number }}">
+            « Anterior
+          </a>
+        {% else %}
+          <button class="btn" disabled>« Anterior</button>
+        {% endif %}
+
+        {# Informação da página atual #}
+        <span style="font-size: 0.9rem; padding: 0 1rem;">
+          Página <strong>{{ page_obj.number }}</strong> de <strong>{{ page_obj.paginator.num_pages }}</strong>
+        </span>
+
+        {# Botão Próxima #}
+        {% if page_obj.has_next %}
+          <a class="btn" href="?q={{ q }}{% if show_only_available %}&disponivel=1{% endif %}&mostrar={{ mostrar }}&page={{ page_obj.next_page_number }}">
+            Próxima »
+          </a>
+        {% else %}
+          <button class="btn" disabled>Próxima »</button>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+    {# Mensagem quando está mostrando todos #}
+    {% if mostrar == "todos" and total_count > 20 %}
+      <p class="muted" style="margin-top: 1rem; text-align: center;">
+        Mostrando todos os {{ total_count }} livros em uma única página.
+      </p>
+    {% endif %}
+
+  {% else %}
+    <p class="muted">Nenhum livro cadastrado.</p>
+  {% endif %}
+  <script>
+  (function(){
+    // Destacar termo buscado (q) nas colunas título, autor e ISBN
+    const term = '{{ q|escapejs }}'.trim();
+    if(term){
+      const regex = new RegExp('('+term.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+')','gi');
+      ['col-title','col-author','col-isbn'].forEach(cls => {
+        document.querySelectorAll('.'+cls).forEach(td => {
+          td.innerHTML = td.textContent.replace(regex,'<mark style="background:gold;color:black;">$1</mark>');
+        });
+      });
+    }
+
+    // Autocomplete simples via datalist consumindo sugestões JSON
+    const input = document.getElementById('q');
+    const dataList = document.getElementById('suggestions');
+    let timer;
+    input && input.addEventListener('input', () => {
+      const v = input.value.trim();
+      if(v.length < 2){ dataList.innerHTML=''; return; }
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fetch('?suggest=1&q='+encodeURIComponent(v))
+          .then(r=>r.json())
+          .then(json => {
+            const items = new Set([...(json.titles||[]), ...(json.authors||[]), ...(json.isbns||[])]);
+            dataList.innerHTML = Array.from(items).map(it => '<option value="'+String(it).replace(/"/g,'&quot;')+'">').join('');
+          })
+          .catch(()=>{});
+      }, 250);
+    });
+  })();
+  </script>
+{% endblock %}
