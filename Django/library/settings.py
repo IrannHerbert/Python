@@ -120,4 +120,19 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+# Media files (uploads de usuários - ex: capas de livros)
+# MEDIA_URL: prefixo da URL para acessar arquivos enviados (ex: /media/book_covers/capa.jpg)
+# MEDIA_ROOT: caminho físico no sistema onde os uploads são salvos
+# Em produção, configure o servidor web (Nginx/Apache) para servir esta pasta
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Auth redirects: define URLs nomeadas usadas nos fluxos de login/logout
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'catalog:book_list'
+LOGOUT_REDIRECT_URL = 'login'
+
+#Default primary key type
+#https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
